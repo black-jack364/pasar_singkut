@@ -249,14 +249,73 @@
                 </div>
             </section>
 
-            <section id="section-rt" class="scroll-mt-24 bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/80 no-print space-y-3 hidden">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Sebaran Status Pemilih per RT (1 - 45)</h3>
+            <section id="section-rt" class="scroll-mt-24 bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200/80 no-print space-y-4 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-purple-600"></i>
+                            Sebaran Status Pemilih per RT
+                        </h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Pantau tingkat konfirmasi dan klasifikasi pemilih per Rukun Tetangga</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <select id="rtViewMode" onchange="updateCharts()" class="text-xs px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                            <option value="active">Tampilkan RT Berisi Data Saja</option>
+                            <option value="all">Tampilkan Semua RT (1 - 45)</option>
+                        </select>
+                        <button onclick="toggleRTViewFormat()" id="btnToggleRTView" class="text-xs bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span id="rtViewFormatText">Lihat Tabel RT</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="relative h-60 sm:h-72 w-full overflow-x-auto">
-                    <div class="min-w-[850px] h-full">
+
+                <!-- RT Quick Stats -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">RT Aktif Terdata</span>
+                        <div class="text-lg font-black text-slate-800 mt-0.5" id="rtStatTotalActive">0</div>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <span class="text-[10px] font-bold text-emerald-600 uppercase">Total Pemilih</span>
+                        <div class="text-lg font-black text-emerald-800 mt-0.5" id="rtStatTotalPemilih">0</div>
+                    </div>
+                    <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                        <span class="text-[10px] font-bold text-amber-600 uppercase">Belum Konfirmasi</span>
+                        <div class="text-lg font-black text-amber-800 mt-0.5" id="rtStatTotalAbu">0</div>
+                    </div>
+                    <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        <span class="text-[10px] font-bold text-rose-600 uppercase">Bukan Pemilih</span>
+                        <div class="text-lg font-black text-rose-800 mt-0.5" id="rtStatTotalBukan">0</div>
+                    </div>
+                </div>
+
+                <!-- Graphic Bar Chart Container -->
+                <div id="rtChartWrapper" class="relative h-64 sm:h-80 w-full overflow-x-auto">
+                    <div class="min-w-[700px] h-full">
                         <canvas id="rtStatusChart"></canvas>
                     </div>
+                </div>
+
+                <!-- Detail Table per RT Container -->
+                <div id="rtTableWrapper" class="hidden overflow-x-auto pt-2 border-t border-slate-100">
+                    <table class="w-full text-left border-collapse min-w-[600px] text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 text-[11px] font-bold uppercase border-b border-slate-200">
+                                <th class="py-2.5 px-3">RT</th>
+                                <th class="py-2.5 px-3 text-center">TOTAL DPT</th>
+                                <th class="py-2.5 px-3 text-center">PEMILIH</th>
+                                <th class="py-2.5 px-3 text-center">ABU-ABU</th>
+                                <th class="py-2.5 px-3 text-center">BUKAN PEMILIH</th>
+                                <th class="py-2.5 px-3 text-center">% PEMILIH</th>
+                                <th class="py-2.5 px-3 text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rtBreakdownTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
@@ -435,8 +494,8 @@
         // Sample Default Mock Data
         const initialVotersMock = [
             { id: 1, nama: "Bambang Suryanto", jenisKelamin: "L", usia: 42, dusun: "Dusun Krajan", rt: "1", status: "abu-abu" },
-            { id: 2, nama: "Siti Aminah", jenisKelamin: "P", usia: 38, dusun: "Dusun Krajan", rt: "5", status: "abu-abu" },
-            { id: 3, nama: "Budi Santoso", jenisKelamin: "L", usia: 19, dusun: "Dusun Sukamulia", rt: "12", status: "abu-abu" }
+            { id: 2, nama: "Siti Aminah", jenisKelamin: "P", usia: 38, dusun: "Dusun Krajan", rt: "5", status: "pemilih" },
+            { id: 3, nama: "Budi Santoso", jenisKelamin: "L", usia: 19, dusun: "Dusun Sukamulia", rt: "12", status: "bukan_pemilih" }
         ];
 
         let voters = [];
@@ -445,6 +504,7 @@
         const pageSize = 8;
         let isCollapsed = false;
         let activeFilterStatus = '';
+        let rtViewFormat = 'chart'; // 'chart' or 'table'
         
         const webAppUrl = API_URL;
 
@@ -584,72 +644,12 @@
 
                 showToast(`Status "${voters[index].nama}" diperbarui!`, "success");
 
-                // Sinkronisasi ke Google Sheets secara silent/background tanpa memblokir layar
+                // Sinkronisasi ke Google Sheets secara silent/background
                 await sendPostRequest({
                     action: "updateStatus",
                     id: id,
                     status: newStatus
                 }, true);
-            }
-        }
-
-        async function sendPostRequest(payload) {
-            if (!webAppUrl) {
-                showToast("Mode Offline: Perubahan disimpan di Browser", "success");
-                return true;
-            }
-
-            showLoading("Menyimpan ke Google Sheets...");
-            try {
-                const response = await fetch(webAppUrl, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                if (result.status === "success") {
-                    return true;
-                } else {
-                    throw new Error(result.message);
-                }
-            } catch (err) {
-                console.error("POST error:", err);
-                showToast("Tersimpan secara lokal (Gagal sync ke Sheet)", "error");
-                return false;
-            } finally {
-                hideLoading();
-            }
-        }
-
-        function loadMockData() {
-            const stored = localStorage.getItem('pilkades_voters');
-            if (stored) {
-                try { voters = JSON.parse(stored); } catch(e) { voters = [...initialVotersMock]; }
-            } else {
-                voters = [...initialVotersMock];
-            }
-            applyFilters();
-        }
-
-        function saveLocalBackup() {
-            localStorage.setItem('pilkades_voters', JSON.stringify(voters));
-        }
-
-        async function changeVoterStatus(id, newStatus) {
-            const index = voters.findIndex(v => v.id === id);
-            if (index !== -1) {
-                voters[index].status = newStatus;
-                saveLocalBackup();
-                applyFilters();
-
-                await sendPostRequest({
-                    action: "updateStatus",
-                    id: id,
-                    status: newStatus
-                });
-
-                showToast(`Status "${voters[index].nama}" diperbarui!`, "success");
             }
         }
 
@@ -710,6 +710,36 @@
             applyFilters();
         }
 
+        function filterByRT(rtNum) {
+            const rtSelect = document.getElementById('filterRT');
+            if (rtSelect) {
+                rtSelect.value = String(rtNum);
+                setActiveNav('section-table');
+                applyFilters();
+                showToast(`Menampilkan daftar pemilih untuk RT ${rtNum}`, "success");
+            }
+        }
+
+        function toggleRTViewFormat() {
+            rtViewFormat = rtViewFormat === 'chart' ? 'table' : 'chart';
+            const chartWrap = document.getElementById('rtChartWrapper');
+            const tableWrap = document.getElementById('rtTableWrapper');
+            const btnText = document.getElementById('rtViewFormatText');
+
+            if (rtViewFormat === 'table') {
+                chartWrap.classList.add('hidden');
+                tableWrap.classList.remove('hidden');
+                btnText.innerText = "Lihat Grafik RT";
+            } else {
+                tableWrap.classList.add('hidden');
+                chartWrap.classList.remove('hidden');
+                btnText.innerText = "Lihat Tabel RT";
+                if (rtStatusChartInstance) {
+                    setTimeout(() => rtStatusChartInstance.resize(), 50);
+                }
+            }
+        }
+
         function applyFilters() {
             const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
             const genderVal = document.getElementById('filterGender').value;
@@ -718,7 +748,15 @@
             filteredVoters = voters.filter(voter => {
                 const matchSearch = voter.nama.toLowerCase().includes(searchVal);
                 const matchGender = !genderVal || voter.jenisKelamin === genderVal;
-                const matchRT = !rtVal || voter.rt === rtVal;
+                
+                // Flexible RT matching (e.g. "1" matches 1 or "01" or "RT 1")
+                let matchRT = true;
+                if (rtVal) {
+                    const cleanVoterRT = String(voter.rt || '').replace(/\D/g, '');
+                    const cleanFilterRT = String(rtVal).replace(/\D/g, '');
+                    matchRT = cleanVoterRT === cleanFilterRT;
+                }
+
                 const matchStatus = !activeFilterStatus || (voter.status || 'abu-abu') === activeFilterStatus;
                 return matchSearch && matchGender && matchRT && matchStatus;
             });
@@ -813,18 +851,37 @@
             });
 
             const ctxRtStatus = document.getElementById('rtStatusChart').getContext('2d');
-            const rtLabels = Array.from({length: 45}, (_, i) => String(i + 1));
             rtStatusChartInstance = new Chart(ctxRtStatus, {
                 type: 'bar',
                 data: {
-                    labels: rtLabels,
+                    labels: [],
                     datasets: [
-                        { label: 'Abu-abu', data: [], backgroundColor: '#94a3b8' },
                         { label: 'Pemilih', data: [], backgroundColor: '#10b981' },
+                        { label: 'Abu-abu', data: [], backgroundColor: '#94a3b8' },
                         { label: 'Bukan Pemilih', data: [], backgroundColor: '#f43f5e' }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        x: { stacked: true, grid: { display: false } }, 
+                        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } 
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => `RT ${items[0].label}`,
+                                footer: (items) => {
+                                    let sum = 0;
+                                    items.forEach(i => sum += i.raw);
+                                    return `Total DPT RT: ${sum} Orang`;
+                                }
+                            }
+                        }
+                    }
+                }
             });
         }
 
@@ -843,18 +900,103 @@
             ageChartInstance.update();
 
             if (rtStatusChartInstance) {
-                const rtLabels = Array.from({length: 45}, (_, i) => String(i + 1));
-                const abu = [], pemilih = [], bukan = [];
-                rtLabels.forEach(rt => {
-                    const rtVoters = voters.filter(v => v.rt === rt);
-                    abu.push(rtVoters.filter(v => !v.status || v.status === 'abu-abu').length);
-                    pemilih.push(rtVoters.filter(v => v.status === 'pemilih').length);
-                    bukan.push(rtVoters.filter(v => v.status === 'bukan_pemilih').length);
+                const viewMode = document.getElementById('rtViewMode') ? document.getElementById('rtViewMode').value : 'active';
+                
+                // Helper function to extract RT numbers safely
+                const getNormalizedRT = (v) => String(v.rt || '').replace(/\D/g, '') || '0';
+
+                // Find all active RT numbers in dataset
+                const activeRTSet = new Set();
+                voters.forEach(v => {
+                    const norm = getNormalizedRT(v);
+                    if (norm && norm !== '0') activeRTSet.add(parseInt(norm, 10));
                 });
-                rtStatusChartInstance.data.datasets[0].data = abu;
-                rtStatusChartInstance.data.datasets[1].data = pemilih;
+
+                let rtList = [];
+                if (viewMode === 'all') {
+                    rtList = Array.from({length: 45}, (_, i) => i + 1);
+                } else {
+                    rtList = Array.from(activeRTSet).sort((a, b) => a - b);
+                    if (rtList.length === 0) rtList = Array.from({length: 15}, (_, i) => i + 1);
+                }
+
+                const labels = rtList.map(num => `RT ${num}`);
+                const pemilih = [];
+                const abu = [];
+                const bukan = [];
+
+                let totalActiveCount = 0;
+                let sumPemilih = 0;
+                let sumAbu = 0;
+                let sumBukan = 0;
+
+                const breakdownTableBody = document.getElementById('rtBreakdownTableBody');
+                if (breakdownTableBody) breakdownTableBody.innerHTML = '';
+
+                rtList.forEach(rtNum => {
+                    const rtVoters = voters.filter(v => parseInt(getNormalizedRT(v), 10) === rtNum);
+                    
+                    const countPemilih = rtVoters.filter(v => v.status === 'pemilih').length;
+                    const countAbu = rtVoters.filter(v => !v.status || v.status === 'abu-abu').length;
+                    const countBukan = rtVoters.filter(v => v.status === 'bukan_pemilih').length;
+
+                    pemilih.push(countPemilih);
+                    abu.push(countAbu);
+                    bukan.push(countBukan);
+
+                    if (rtVoters.length > 0) totalActiveCount++;
+                    sumPemilih += countPemilih;
+                    sumAbu += countAbu;
+                    sumBukan += countBukan;
+
+                    // Render Breakdown Table Row if RT has data or when showing all RTs
+                    if (breakdownTableBody && (viewMode === 'all' || rtVoters.length > 0)) {
+                        const totalRtDPT = rtVoters.length;
+                        const pctPemilih = totalRtDPT > 0 ? Math.round((countPemilih / totalRtDPT) * 100) : 0;
+                        
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b border-slate-100 transition";
+                        tr.innerHTML = `
+                            <td class="py-2.5 px-3 font-bold text-slate-800">RT ${rtNum}</td>
+                            <td class="py-2.5 px-3 text-center font-semibold">${totalRtDPT}</td>
+                            <td class="py-2.5 px-3 text-center text-emerald-700 font-bold bg-emerald-50/50">${countPemilih}</td>
+                            <td class="py-2.5 px-3 text-center text-slate-600">${countAbu}</td>
+                            <td class="py-2.5 px-3 text-center text-rose-700">${countBukan}</td>
+                            <td class="py-2.5 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <div class="w-12 bg-slate-200 rounded-full h-2 overflow-hidden hidden sm:block">
+                                        <div class="bg-emerald-500 h-2 rounded-full" style="width: ${pctPemilih}%"></div>
+                                    </div>
+                                    <span class="font-extrabold text-slate-700">${pctPemilih}%</span>
+                                </div>
+                            </td>
+                            <td class="py-2.5 px-3 text-center">
+                                <button onclick="filterByRT(${rtNum})" class="text-[11px] px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg border border-slate-200 transition">
+                                    <i class="fa-solid fa-filter text-[10px]"></i> Detail
+                                </button>
+                            </td>
+                        `;
+                        breakdownTableBody.appendChild(tr);
+                    }
+                });
+
+                // Update RT Chart Datasets
+                rtStatusChartInstance.data.labels = labels;
+                rtStatusChartInstance.data.datasets[0].data = pemilih;
+                rtStatusChartInstance.data.datasets[1].data = abu;
                 rtStatusChartInstance.data.datasets[2].data = bukan;
                 rtStatusChartInstance.update();
+
+                // Update Quick Stat Badges
+                const elActive = document.getElementById('rtStatTotalActive');
+                const elPemilih = document.getElementById('rtStatTotalPemilih');
+                const elAbu = document.getElementById('rtStatTotalAbu');
+                const elBukan = document.getElementById('rtStatTotalBukan');
+
+                if (elActive) elActive.innerText = `${totalActiveCount} RT`;
+                if (elPemilih) elPemilih.innerText = `${sumPemilih} Pemilih`;
+                if (elAbu) elAbu.innerText = `${sumAbu} Orang`;
+                if (elBukan) elBukan.innerText = `${sumBukan} Orang`;
             }
         }
 
@@ -905,6 +1047,15 @@
                     else el.classList.add('hidden');
                 }
             });
+
+            // Trigger chart recalculation and canvas resize when unhidden
+            if (sectionId === 'section-rt' || sectionId === 'section-charts' || sectionId === 'all') {
+                setTimeout(() => {
+                    if (rtStatusChartInstance) rtStatusChartInstance.resize();
+                    if (genderChartInstance) genderChartInstance.resize();
+                    if (ageChartInstance) ageChartInstance.resize();
+                }, 100);
+            }
         }
 
         function changePage(dir) { currentPage += dir; renderTable(); }
