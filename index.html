@@ -475,6 +475,25 @@
             document.getElementById('loadingOverlay').classList.add('hidden');
         }
 
+        function setSyncStatus(state) {
+            const syncBadge = document.getElementById('syncIndicator');
+            if (!syncBadge) return;
+            if (state === 'saving') {
+                syncBadge.className = "bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1";
+                syncBadge.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-[9px]"></i> Menyimpan...`;
+            } else if (state === 'synced') {
+                syncBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1";
+                syncBadge.innerHTML = `<i class="fa-solid fa-circle-check text-[9px]"></i> Tersinkron`;
+                setTimeout(() => {
+                    syncBadge.className = "bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1";
+                    syncBadge.innerHTML = `<i class="fa-solid fa-rotate text-[9px]"></i> Sync`;
+                }, 2500);
+            } else if (state === 'error') {
+                syncBadge.className = "bg-rose-100 text-rose-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-rose-200 flex items-center gap-1";
+                syncBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-[9px]"></i> Gagal Sync`;
+            }
+        }
+
         async function fetchDataFromBackend() {
             if (!webAppUrl) {
                 showToast("URL API belum disematkan pada kode HTML.", "error");
@@ -502,6 +521,75 @@
                 loadMockData();
             } finally {
                 hideLoading();
+            }
+        }
+
+        async function sendPostRequest(payload, silent = false) {
+            if (!webAppUrl) {
+                showToast("Mode Offline: Perubahan disimpan di Browser", "success");
+                return true;
+            }
+
+            if (!silent) {
+                showLoading("Menyimpan ke Google Sheets...");
+            } else {
+                setSyncStatus("saving");
+            }
+
+            try {
+                const response = await fetch(webAppUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    if (silent) setSyncStatus("synced");
+                    return true;
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (err) {
+                console.error("POST error:", err);
+                if (silent) setSyncStatus("error");
+                showToast("Tersimpan secara lokal (Gagal sync ke Sheet)", "error");
+                return false;
+            } finally {
+                if (!silent) hideLoading();
+            }
+        }
+
+        function loadMockData() {
+            const stored = localStorage.getItem('pilkades_voters');
+            if (stored) {
+                try { voters = JSON.parse(stored); } catch(e) { voters = [...initialVotersMock]; }
+            } else {
+                voters = [...initialVotersMock];
+            }
+            applyFilters();
+        }
+
+        function saveLocalBackup() {
+            localStorage.setItem('pilkades_voters', JSON.stringify(voters));
+        }
+
+        async function changeVoterStatus(id, newStatus) {
+            const index = voters.findIndex(v => v.id === id);
+            if (index !== -1) {
+                // Pembaruan instan pada antarmuka (Optimistic Update)
+                voters[index].status = newStatus;
+                saveLocalBackup();
+                applyFilters();
+
+                showToast(`Status "${voters[index].nama}" diperbarui!`, "success");
+
+                // Sinkronisasi ke Google Sheets secara silent/background tanpa memblokir layar
+                await sendPostRequest({
+                    action: "updateStatus",
+                    id: id,
+                    status: newStatus
+                }, true);
             }
         }
 
