@@ -158,7 +158,6 @@
                 </div>
             </div>
 
-            <!-- Touch Navigation Bar -->
             <div class="bg-slate-50 border-t border-slate-200 px-2 sm:px-6 overflow-x-auto no-scrollbar">
                 <div class="flex space-x-1 sm:space-x-2 py-1.5 text-xs font-medium whitespace-nowrap min-w-max">
                     <button onclick="setActiveNav('section-stats')" id="tab-section-stats" class="tab-btn px-3 py-2 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-white transition flex items-center gap-1.5">
@@ -277,10 +276,6 @@
                             <button onclick="openAddVoterModal()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-2 rounded-xl transition shadow-xs flex items-center gap-1.5">
                                 <i class="fa-solid fa-user-plus text-xs"></i>
                                 <span>Tambah DPT</span>
-                            </button>
-                            <button onclick="resetBackendData()" class="text-xs text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition border border-slate-200 flex items-center gap-1.5">
-                                <i class="fa-solid fa-rotate-left"></i>
-                                <span class="hidden sm:inline">Reset Sheet</span>
                             </button>
                         </div>
                     </div>
@@ -597,19 +592,6 @@
             saveLocalBackup();
             applyFilters();
             showToast(`Pemilih "${nama}" berhasil ditambahkan!`, "success");
-        }
-
-        async function resetBackendData() {
-            voters = [...initialVotersMock];
-            saveLocalBackup();
-            applyFilters();
-
-            if (webAppUrl) {
-                await sendPostRequest({ action: "resetData" });
-                fetchDataFromBackend();
-            } else {
-                showToast("Data reset ke sampel awal!", "success");
-            }
         }
 
         function populateRTOptions() {
